@@ -90,14 +90,88 @@ def train_model(model, epochs, trainloader, validloader, criterion, optimizer):
 
     return model, optimizer
 
-def test_model():
-    return
+def test_model(model, testloader):
+    correct = 0
+    total = 0
+    model.to(device)
 
-def save_model():
-    return
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
-def load_model():
-    return
+    print('Accuracy of the network on the test images is: %d%%' % (100 * correct / total))
 
-def predict():
-    return
+def save_model(model, train_data, optimizer, filepath, epochs):
+    # save mapping of classes into indices
+    model.class_to_idx = train_data.class_to_idx
+
+    checkpoint = {'state_dict': model.state_dict(),
+                  'classifier': model.classifier,
+                  'class_to_idx': model.class_to_idx,
+                  'optimizer_state': optimizer.state_dict,
+                  'number_epochs': epochs}
+
+    return orch.save(checkpoint, save_dir)
+
+def load_checkpoint(model, filepath):
+    '''
+        This function loads the checkpoint
+        and rebuilds the network model
+        input: filepath
+        output: network model
+    '''
+
+    #load the saved file
+    checkpoint = torch.load(filepath)
+    model.load_state_dict(checkpoint['state_dict'])
+    model.classifier = checkpoint['classifier']
+    model.class_to_idx = checkpoint['class_to_idx']
+
+    return model
+
+def predict(processed_image, loaded_model, topk):
+    loaded_model.eval()
+
+    # loading model with .cpu()
+    loaded_model = load_checkpoint(model).cpu()
+
+    # Process image
+    image = process_image(image_path)
+
+    # Convert image from Numpy array to Tensor
+    image_tensor = torch.from_numpy(image).type(torch.FloatTensor)
+
+    # insert new axis at index 0.
+    image_input = image_tensor.unsqueeze_(0)
+
+    #set model to eval, turn gradients off
+    loaded_model.eval()
+    with torch.no_grad():
+        output = loaded_model.forward(image_input)
+
+    # Calc probabilties
+    #calc probability
+    probs = torch.exp(output)
+    top_probs = probs.topk(topk)[0]
+    top_index = probs.topk(topk)[1]
+
+    # converting probabilities and outputs to lists
+    top_probs_list = np.array(top_probs)[0]
+    top_index_list = np.array(top_index[0])
+
+    #loading index and class mapping
+    class_to_idx = loaded_model.class_to_idx
+    # Inverting  index-class dictionary
+    idx_to_class = {x: y for y, x in class_to_idx.items()}
+
+    # converting index list to class list
+    top_classes_list = []
+    for index in top_index_list:
+        top_classes_list += [idx_to_class[index]]
+
+    return top_probs_list, top_classes_list
