@@ -57,7 +57,7 @@ def process_image(image):
     # transform image for network model
     image_tensor = transform(im)
 
-    #convert to numpy array
+    # Convert to numpy array
     image_array = np.array(image_tensor)
 
     return image_array
