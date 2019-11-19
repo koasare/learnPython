@@ -8,7 +8,7 @@ from torchvision import datasets, transforms, models
 from collections import OrderedDict
 
 # classifier function
-def network(model, input_size, hidden_size, dropout):
+def network(model, input_size, hidden_units, dropout):
     # Freeze parameters so we don't backpropagation
     for param in model.parameters():
         param.requires_grad = False
@@ -28,11 +28,16 @@ def validation(model, validloader, criterion):
     valid_loss = 0
     accuracy = 0
 
-    model.to(device)
+    if gpu == True:
+        model.to('cuda')
+    else:
+        pass
 
     for ii, (inputs, labels) in enumerate(validloader):
-
-        inputs, labels = inputs.to(device), labels.to(device)
+        if gpu == True:
+            inputs, labels = inputs.to('cuda'), labels.to('cuda')
+        else:
+            pass
 
         # Feed forward
         output = model.forward(inputs)
@@ -53,15 +58,20 @@ def train_model(model, epochs, trainloader, validloader, criterion, optimizer):
     steps = 0
     print_every = 5
 
-    model.to(device)
+    if gpu == True:
+        model.to('cuda')
+    else:
+        pass
 
     for epoch in range(epochs):
         for ii, (inputs, labels) in enumerate(trainloader):
             steps += 1
 
             #get inputs
-            inputs, labels = inputs.to(device), labels.to(device)
-
+            if gpu == True:
+                inputs, labels = inputs.to('cuda'), labels.to('cuda')
+            else:
+                pass
             #zero parameter gradients
             optimizer.zero_grad()
 
@@ -93,12 +103,21 @@ def train_model(model, epochs, trainloader, validloader, criterion, optimizer):
 def test_model(model, testloader):
     correct = 0
     total = 0
-    model.to(device)
+
+    if gpu == True:
+        model.to('cuda')
+    else:
+        pass
 
     with torch.no_grad():
         for data in testloader:
             images, labels = data
-            images, labels = images.to(device), labels.to(device)
+
+            if gpu == True:
+                inputs, labels = inputs.to('cuda'), labels.to('cuda')
+            else:
+                pass
+
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
