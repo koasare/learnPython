@@ -8,7 +8,7 @@ from torchvision import datasets, transforms, models
 from collections import OrderedDict
 
 # classifier function
-def network(model, input_size, hidden_units, dropout):
+def network(model, input_units, hidden_units, dropout):
     # Freeze parameters so we don't backpropagation
     for param in model.parameters():
         param.requires_grad = False
@@ -24,7 +24,7 @@ def network(model, input_size, hidden_units, dropout):
     model.classifier = classifier
     return model
 
-def validation(model, validloader, criterion):
+def validation(model, validloader, criterion, gpu):
     valid_loss = 0
     accuracy = 0
 
@@ -54,7 +54,7 @@ def validation(model, validloader, criterion):
 
     return valid_loss, accuracy
 
-def train_model(model, epochs, trainloader, validloader, criterion, optimizer):
+def train_model(model, epochs, trainloader, validloader, criterion, optimizer, gpu):
     steps = 0
     print_every = 5
 
@@ -100,7 +100,7 @@ def train_model(model, epochs, trainloader, validloader, criterion, optimizer):
 
     return model, optimizer
 
-def test_model(model, testloader):
+def test_model(model, testloader, gpu):
     correct = 0
     total = 0
 
@@ -125,7 +125,7 @@ def test_model(model, testloader):
 
     print('Accuracy of the network on the test images is: %d%%' % (100 * correct / total))
 
-def save_model(model, train_data, optimizer, filepath, epochs):
+def save_model(model, train_data, optimizer, save_dir, epochs):
     # save mapping of classes into indices
     model.class_to_idx = train_data.class_to_idx
 
@@ -137,7 +137,7 @@ def save_model(model, train_data, optimizer, filepath, epochs):
 
     return orch.save(checkpoint, save_dir)
 
-def load_checkpoint(model, filepath):
+def load_checkpoint(model, save_dir, gpu):
     '''
         This function loads the checkpoint
         and rebuilds the network model
@@ -153,7 +153,7 @@ def load_checkpoint(model, filepath):
 
     return model
 
-def predict(processed_image, loaded_model, topk):
+def predict(processed_image, loaded_model, topk, gpu):
     loaded_model.eval()
 
     # loading model with .cpu()

@@ -33,9 +33,11 @@ parser.add_argument('--gpu,' action = "store_true", default = False, help = 'Tur
 
 results = parser.parse_args()
 
-data_dir = result.data_directory
+data_dir = results.data_directory
 
-save_dir = result.save_directory
+pt_model  = results.pretrained_model
+
+save_dir = results.save_directory
 
 learning_rate = results.lr
 
@@ -46,3 +48,25 @@ hidden_units = results.unints
 epochs = results.number_epochs
 
 gpu = results.gpu
+
+# Load Data
+trainloader, testloader, validloader, train_data, test_data, valid_data = load_data(data_dir)
+
+#Load pre trained model
+model = models.pt_model(pretrained = True)
+
+# Build classifier
+input_units = model.classifier[0].in_features
+network(model, input, hidden_units, dropout)
+
+criterion = nn.NLLLoss()
+optimizer = optim.Adam(model.classifier.parameters(), learning_rate)
+
+# Train model
+model, optimizer = train_model(model, epochs, trainloader, validloader, criterion, optimizer, gpu)
+
+# Test model
+test_model(model, testloader, gpu)
+
+# Save model
+(loaded_model, train_data, optimizer, save_dir, epochs)
