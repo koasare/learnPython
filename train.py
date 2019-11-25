@@ -1,72 +1,107 @@
 #imports
 import argparse
-
 import numpy as np
-
 import pandas as pd
-
 import torch
 from torch import nn
 from torch import optim
 import torch.nn.functional as F
-
+from torchvision import datasets, transforms, models
 from utility import load_data, process_image
-from functions import network, validation, train_model, test_model, save_model, load_checkpoint, predict
+from functions import build_classifier, validation, train_model, test_model, save_model, load_model
 
-# Set up calculation device
-parser.add_argument('data_directory', action = 'store', help = 'Enter path to training data: ')
+from workspace_utils import active_session
+with active_session():
 
-parser.add_argument('--arch', action = 'store', dest = 'pretrained_model',
-                    default = 'vgg11', help = 'Enter pretrained model to use. Else default is set to VGG-11: ')
+    # Set up calculation device
+    parser = argparse.ArgumentParser()
 
-parser.add_argument('--save_dir', action = 'store', dest = 'save_directory', default = 'checkpoint.pth', help = 'Enter location to save Checkpoint: ')
+    parser.add_argument('data_directory',
+                        action = 'store',
+                        default = 'flowers',
+                        help = 'Enter path to training data: ')
 
-parser.add_argument('--learning_rate', action = 'store', dest = 'lr', type = 'int', defualt = 0.001, help = 'Enter learning_rate for training model: ')
+    parser.add_argument('--arch', 
+                        action = 'store', 
+                        dest = 'pretrained_model',
+                        default = 'vgg11', 
+                        help = 'Enter pretrained model to use. Else default is set to VGG-11: ')
 
-parser.add_argument('--dropout', action = 'store', dest = 'drpt', type = 'int', defualt = 0.05, help = 'Enter dropout for training model: ')
+    parser.add_argument('--save_dir', 
+                        action = 'store', 
+                        dest = 'save_directory', 
+                        default = 'checkpoint.pth', 
+                        help = 'Enter location to save Checkpoint: ')
 
-parser.add_argument('--hidden_units', action = 'store', dest = 'size', type = 'int', defualt = 500, help = 'Enter of hidden unints for training model: ')
+    parser.add_argument('--learning_rate', 
+                        action = 'store', 
+                        dest = 'lr', 
+                        type = float,
+                        default = 0.002, 
+                        help = 'Enter learning_rate for training model: ')
 
-parser.add_argument('--epochs', action = 'store', dest = 'number_epochs', type = 'int', defualt = 3, help = 'Enter number of epochs for training model: ')
+    parser.add_argument('--dropout',
+                        action = 'store', 
+                        dest = 'dropout', 
+                        type = float, 
+                        default = 0.2, 
+                        help = 'Enter dropout for training model: ')
 
-parser.add_argument('--gpu,' action = "store_true", default = False, help = 'Turn GPU mode on or off: ')
+    parser.add_argument('--hidden_units', 
+                        action = 'store', 
+                        dest = 'hunits', 
+                        type = int, 
+                        default = 4096, help = 'Enter of hidden unints for training model: ')
 
-results = parser.parse_args()
+    parser.add_argument('--epochs', 
+                        action = 'store', 
+                        dest = 'number_epochs', 
+                        type = int, 
+                        default = 2, 
+                        help = 'Enter number of epochs for training model: ')
 
-data_dir = results.data_directory
+    parser.add_argument('--gpu', 
+                        action = "store_true", 
+                        default = True, 
+                        help = 'Turn GPU mode on or off: ')
 
-pt_model  = results.pretrained_model
+    results = parser.parse_args()
 
-save_dir = results.save_directory
+    data_dir = results.data_directory
 
-learning_rate = results.lr
+    pt_model  = results.pretrained_model
 
-dropout = results.drpt
+    save_dir = results.save_directory
 
-hidden_units = results.unints
+    learning_rate = results.lr
 
-epochs = results.number_epochs
+    dropout = results.dropout
 
-gpu = results.gpu
+    hidden_units = results.hunits
 
-# Load Data
-trainloader, testloader, validloader, train_data, test_data, valid_data = load_data(data_dir)
+    epochs = results.number_epochs
 
-#Load pre trained model
-model = models.pt_model(pretrained = True)
+    gpu = results.gpu
 
-# Build classifier
-input_units = model.classifier[0].in_features
-network(model, input, hidden_units, dropout)
+    # Load Data
+    train_data, valid_data, test_data, trainloader, validloader, testloader = load_data(data_dir)
 
-criterion = nn.NLLLoss()
-optimizer = optim.Adam(model.classifier.parameters(), learning_rate)
+    #model = models.pt_model(pretrained = True)
+    model = getattr(models,pt_model)(pretrained = True)
+    #loaded_model = load_checkpoint(model, save_dir)
 
-# Train model
-model, optimizer = train_model(model, epochs, trainloader, validloader, criterion, optimizer, gpu)
+    # Build classifier
+    input_units = model.classifier[0].in_features
+    build_classifier(model, input_units, hidden_units, dropout)
 
-# Test model
-test_model(model, testloader, gpu)
+    criterion = nn.NLLLoss()
+    optimizer = optim.Adam(model.classifier.parameters(), learning_rate)
 
-# Save model
-(loaded_model, train_data, optimizer, save_dir, epochs)
+    # Train model
+    model, optimizer = train_model(model, epochs, trainloader, validloader, criterion, optimizer, gpu)
+
+    # Test model
+    test_model(model, testloader, gpu)
+
+    # Save model
+    save_model(model, train_data, optimizer, save_dir, epochs)

@@ -8,6 +8,11 @@ from PIL import Image
 from torchvision import datasets, transforms, models
 
 def load_data(data_dir):
+    
+    train_dir = data_dir + '/train'
+    valid_dir = data_dir + '/valid'
+    test_dir = data_dir + '/test'
+    
     # Training transforms: random rotation, resize and Flip
     train_transforms = transforms.Compose([transforms.RandomRotation(30),
                                       transforms.RandomResizedCrop(224),
@@ -31,7 +36,7 @@ def load_data(data_dir):
 
     # Load the datasets with ImageFolder
     train_data = datasets.ImageFolder(train_dir, train_transforms)
-    vaild_data = datasets.ImageFolder(valid_dir, valid_transforms)
+    valid_data = datasets.ImageFolder(valid_dir, valid_transforms)
     test_data = datasets.ImageFolder(test_dir, test_transforms)
 
     # Using the image datasets and the trainforms, define the dataloaders
@@ -42,13 +47,14 @@ def load_data(data_dir):
     return train_data, valid_data, test_data, trainloader, validloader, testloader
 
 def process_image(image):
-     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
     '''
-
+    
     # TODO: Process a PIL image for use in a PyTorch model
     im = Image.open(image)
-    #
+    
+    # Resize and crop image
     transform = transforms.Compose([transforms.Resize(256),
                                     transforms.CenterCrop(224),
                                     transforms.ToTensor(),
@@ -56,8 +62,14 @@ def process_image(image):
                                                          [0.229, 0.224, 0.225])])
     # transform image for network model
     image_tensor = transform(im)
-
-    # Convert to numpy array
+    
+    #convert to numpy array
     image_array = np.array(image_tensor)
-
-    return image_array
+    
+    # convert to torch tensor
+    image_tensor = torch.from_numpy(image_array).type(torch.FloatTensor)
+    
+    # insert new axis at index 0
+    image_input = image_tensor.unsqueeze_(0)
+    
+    return image_input
